@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: note_share_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: note_share
+    ports:
+      - 5432:5432
+    volumes:
+      - note_share_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: note_share_redis
+    restart: always
+    ports:
+      - 6379:6379
+
+volumes:
+  note_share_pgdata:
