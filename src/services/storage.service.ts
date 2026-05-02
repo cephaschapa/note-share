@@ -14,7 +14,7 @@ export type StoredFile = {
   checksum: string;
 };
 
-export async function saveLocalStorage(
+export async function saveLocalFile(
   file: Express.Multer.File,
 ): Promise<StoredFile> {
   await fs.promises.mkdir(uploadDir, {
