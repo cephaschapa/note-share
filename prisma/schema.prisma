@@ -4,10 +4,109 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum NoteVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum VersionStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+model User {
+  id String @id @default(uuid())
+  name String
+  email String @unique
+  passwordHash String
+  role UserRole @default(STUDENT)
+
+  notes Note[] @relation("UserNotes")
+  versions NoteVersion[] @relation("UploadedVersions")
+  downloads Download[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Note {
+  id String @id @default(uuid())
+  title String
+  description String?
+  subject String
+  visibility NoteVisibility @default(PUBLIC)
+
+  ownerId String
+  owner User @relation("UserNotes", fields: [ownerId], references: [id])
+
+  currentVersionId String?
+  versions NoteVersion[]
+
+  downloads Download[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([title])
+  @@index([subject])
+  @@index([ownerId])
+}
+
+model NoteVersion {
+  id String @id @default(uuid())
+  noteId String
+  note Note @relation(fields: [noteId], references: [id])
+
+  versionNumber Int
+  fileName String
+  fileUrl String
+  fileKey String
+  fileSize Int
+  mimeType      String
+  checksum      String?
+  changeNote    String?
+  status        VersionStatus @default(PROCESSING)
+
+  uploadedById  String
+  uploadedBy    User          @relation("UploadedVersions", fields: [uploadedById], references: [id])
+
+  downloads     Download[]
+
+  createdAt     DateTime      @default(now())
+
+  @@unique([noteId, versionNumber])
+  @@index([noteId])
+}
+
+
+model Download {
+  id          String      @id @default(uuid())
+
+  noteId      String
+  note        Note        @relation(fields: [noteId], references: [id])
+
+  versionId   String
+  version     NoteVersion @relation(fields: [versionId], references: [id])
+
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+
+  ipAddress   String?
+  downloadedAt DateTime   @default(now())
+
+  @@index([noteId])
+  @@index([userId])
 }
