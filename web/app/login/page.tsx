@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Eye, EyeOff, Loader2 } from "lucide-react";
 import { api, parseApiError, type ApiFieldErrors } from "@/lib/api";
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const router = useRouter();
 
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [fieldErrors, setFieldErrors] = useState<ApiFieldErrors>({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,6 @@ export default function RegisterPage() {
 
   function validate(): ApiFieldErrors {
     const errors: ApiFieldErrors = {};
-    if (!form.name.trim()) errors.name = ["Name is required"];
     if (!form.email.trim()) {
       errors.email = ["Email is required"];
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
@@ -42,7 +41,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const { data } = await api.post<{ token: string }>("/auth/register", form);
+      const { data } = await api.post<{ token: string }>("/auth/login", form);
       localStorage.setItem("note_share_token", data.token);
       router.push("/");
     } catch (err) {
@@ -85,10 +84,10 @@ export default function RegisterPage() {
         {/* Card */}
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 shadow-sm">
           <h1 className="text-xl font-semibold text-center text-zinc-900 dark:text-zinc-50">
-            Create an account
+            Welcome back
           </h1>
           <p className="text-[13px] text-zinc-500 dark:text-zinc-400 text-center mt-1 mb-7">
-            Sign up to share and discover notes
+            Log in to your NoteShare account
           </p>
 
           {/* Server error banner */}
@@ -99,25 +98,8 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            {/* Name */}
-            <Field
-              label="Full name"
-              error={fieldErrors.name?.[0]}
-            >
-              <input
-                type="text"
-                placeholder="Alex Johnson"
-                autoComplete="name"
-                {...field("name")}
-                className={inputClass(!!fieldErrors.name)}
-              />
-            </Field>
-
             {/* Email */}
-            <Field
-              label="Email address"
-              error={fieldErrors.email?.[0]}
-            >
+            <Field label="Email address" error={fieldErrors.email?.[0]}>
               <input
                 type="email"
                 placeholder="alex@example.com"
@@ -128,15 +110,12 @@ export default function RegisterPage() {
             </Field>
 
             {/* Password */}
-            <Field
-              label="Password"
-              error={fieldErrors.password?.[0]}
-            >
+            <Field label="Password" error={fieldErrors.password?.[0]}>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Min. 8 characters"
-                  autoComplete="new-password"
+                  placeholder="Your password"
+                  autoComplete="current-password"
                   {...field("password")}
                   className={inputClass(!!fieldErrors.password) + " pr-10"}
                 />
@@ -161,19 +140,19 @@ export default function RegisterPage() {
               className="w-full flex items-center justify-center gap-2 py-2.5 mt-1 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-black font-semibold text-[15px] hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? "Creating account…" : "Sign up"}
+              {loading ? "Logging in…" : "Log in"}
             </button>
           </form>
         </div>
 
-        {/* Login link */}
+        {/* Register link */}
         <p className="text-center text-[13px] text-zinc-500 dark:text-zinc-400 mt-5">
-          Already have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link
-            href="/login"
+            href="/register"
             className="font-semibold text-zinc-900 dark:text-zinc-50 hover:underline"
           >
-            Log in
+            Sign up
           </Link>
         </p>
       </div>
