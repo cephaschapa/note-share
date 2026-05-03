@@ -21,8 +21,12 @@ const NAV_ITEMS = [
   { href: "/upload", icon: PlusSquare, label: "Upload" },
 ];
 
+const AUTH_PATHS = ["/login", "/register"];
+
 export function Navbar() {
   const pathname = usePathname();
+
+  if (AUTH_PATHS.includes(pathname)) return null;
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
