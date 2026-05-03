@@ -122,11 +122,16 @@ notesRouter.get("/", requireAuth, async (req, res) => {
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
   const offset = (page - 1) * limit;
+  const ownerId = req.query.ownerId as string | undefined;
+
+  const where = {
+    ...(ownerId
+      ? { ownerId }
+      : { visibility: NoteVisibility.PUBLIC }),
+  };
 
   const notes = await prisma.note.findMany({
-    where: {
-      visibility: "PUBLIC",
-    },
+    where,
     skip: offset,
     take: limit,
     orderBy: {
@@ -136,6 +141,7 @@ notesRouter.get("/", requireAuth, async (req, res) => {
       owner: {
         select: {
           id: true,
+          name: true,
         },
       },
       versions: {
@@ -147,11 +153,7 @@ notesRouter.get("/", requireAuth, async (req, res) => {
     },
   });
 
-  const total = await prisma.note.count({
-    where: {
-      visibility: "PUBLIC",
-    },
-  });
+  const total = await prisma.note.count({ where });
 
   return res.status(200).json({
     notes,
