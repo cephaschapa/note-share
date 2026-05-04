@@ -4,8 +4,9 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import {
-  saveLocalFile,
+  saveFile,
   getLocalFilePath,
+  getDownloadUrl,
 } from "../services/storage.service.js";
 import { noteProcessingQueue } from "../jobs/queue.js";
 import { NoteVisibility, VersionStatus } from "../generated/prisma/client.js";
@@ -56,7 +57,7 @@ notesRouter.post("/", requireAuth, upload.single("file"), async (req, res) => {
     });
   }
 
-  const storedFile = await saveLocalFile(req.file);
+  const storedFile = await saveFile(req.file);
 
   const result = await prisma.$transaction(async (tx) => {
     const note = await tx.note.create({
@@ -125,9 +126,7 @@ notesRouter.get("/", requireAuth, async (req, res) => {
   const ownerId = req.query.ownerId as string | undefined;
 
   const where = {
-    ...(ownerId
-      ? { ownerId }
-      : { visibility: NoteVisibility.PUBLIC }),
+    ...(ownerId ? { ownerId } : { visibility: NoteVisibility.PUBLIC }),
   };
 
   const notes = await prisma.note.findMany({
@@ -272,7 +271,7 @@ notesRouter.post(
     if (note.ownerId !== req.user?.userId && req.user?.role !== "ADMIN") {
       return res.status(403).json({ message: "Forbidden" });
     }
-    const storedFile = await saveLocalFile(req.file);
+    const storedFile = await saveFile(req.file);
     const nextVersionNumber =
       note.versions.length === 0
         ? 1
@@ -453,6 +452,16 @@ notesRouter.get("/:id/download", async (req, res) => {
     });
   }
 
+  if (note.visibility === "PRIVATE") {
+    const userId = req.user?.userId;
+
+    if (!userId || userId !== note.ownerId) {
+      return res.status(403).json({
+        message: "You do not have access to this note",
+      });
+    }
+  }
+
   const version = note.versions.find((v) => v.id === note.currentVersionId);
 
   if (!version) {
@@ -469,6 +478,12 @@ notesRouter.get("/:id/download", async (req, res) => {
       ipAddress: req.ip ?? null,
     },
   });
+
+  const signedUrl = await getDownloadUrl(version.fileKey);
+
+  if (signedUrl) {
+    return res.redirect(signedUrl);
+  }
 
   return res.download(getLocalFilePath(version.fileKey), version.fileName);
 });
@@ -490,6 +505,16 @@ notesRouter.get("/:id/versions/:versionId/download", async (req, res) => {
     });
   }
 
+  if (version.note.visibility === "PRIVATE") {
+    const userId = req.user?.userId;
+
+    if (!userId || userId !== version.note.ownerId) {
+      return res.status(403).json({
+        message: "You do not have access to this note",
+      });
+    }
+  }
+
   await prisma.download.create({
     data: {
       noteId: version.noteId,
@@ -498,6 +523,12 @@ notesRouter.get("/:id/versions/:versionId/download", async (req, res) => {
       ipAddress: req.ip ?? null,
     },
   });
+
+  const signedUrl = await getDownloadUrl(version.fileKey);
+
+  if (signedUrl) {
+    return res.redirect(signedUrl);
+  }
 
   return res.download(getLocalFilePath(version.fileKey), version.fileName);
 });

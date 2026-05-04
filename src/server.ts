@@ -6,9 +6,31 @@ import { authRouter } from "./routes/auth.routes.js";
 import { notesRouter } from "./routes/notes.routes.js";
 
 const app = express();
+
+app.set("trust proxy", 1);
+
 const port = Number(process.env.PORT || 4000);
 
-app.use(cors());
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",")
+  : ["http://localhost:3000"];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
